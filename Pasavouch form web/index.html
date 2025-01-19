@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pasavouch Converter Form</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>Pasavouch Converter Form</h1>
+  <form id="converterForm">
+    <!-- Section 1 -->
+    <div id="section1" class="form-section">
+      <label for="facebookName">Facebook Name:</label>
+      <input type="text" id="facebookName" name="facebookName" required>
+      <div class="buttons">
+        <button type="button" onclick="validateAndProceed(2)">Next</button>
+      </div>
+    </div>
+
+    <!-- Section 2 -->
+    <div id="section2" class="form-section hidden">
+      <label for="inputNumber">Convertload (Input Number):</label>
+      <input type="number" id="inputNumber" name="inputNumber" min="1" required>
+      
+      <label for="charge">Charge (30%):</label>
+      <input type="text" id="chargeField" name="charge" readonly>
+      
+      <label for="receive">You Receive:</label>
+      <input type="text" id="receiveField" name="receive" readonly>
+
+      <!-- Hidden inputs for charge and receive -->
+      <input type="hidden" id="charge" name="charge">
+      <input type="hidden" id="receive" name="receive">
+      
+      <div class="buttons">
+        <button type="button" onclick="goToSection(1)">Back</button>
+        <button type="button" onclick="validateAndProceed(3)">Next</button>
+      </div>
+    </div>
+
+    <!-- Section 3 -->
+    <div id="section3" class="form-section hidden">
+      <label for="cashOutOptions">Cash-out Options:</label>
+      <select id="cashOutOptions" name="cashOutOptions" required>
+        <option value="">Select an option</option>
+        <option value="GCash">GCash</option>
+        <option value="Maya">Maya</option>
+      </select>
+      <div id="accountNumberField" class="hidden">
+        <label for="accountNumber">Account Number:</label>
+        <input type="text" id="accountNumber" name="accountNumber" required>
+      </div>
+      <div class="buttons">
+        <button type="button" onclick="goToSection(2)">Back</button>
+        <button type="button" onclick="validateAndProceed(4)">Next</button>
+      </div>
+    </div>
+
+    <!-- Section 4 -->
+    <div id="section4" class="form-section hidden">
+      <p>SUBMIT YOUR FORM</p>
+      <div class="buttons">
+        <button type="button" onclick="goToSection(3)">Back</button>
+        <button type="submit">Submit</button>
+      </div>
+    </div>
+  </form>
+
+  <p id="thankYouMessage" class="hidden">Thank you! Your response has been recorded.</p>
+
+  <script>
+    // Function to move between sections
+    function goToSection(sectionNumber) {
+      document.querySelectorAll('.form-section').forEach(section => {
+        section.classList.add('hidden');
+      });
+      document.getElementById(`section${sectionNumber}`).classList.remove('hidden');
+    }
+
+    // Function to update calculation (charge and receive)
+    function updateCalculation() {
+      const inputNumber = parseFloat(document.getElementById('inputNumber').value) || 0;
+      const charge = inputNumber * 0.3;
+      const receive = inputNumber - charge;
+
+      document.getElementById('chargeField').value = `-${charge.toFixed(2)}`;
+      document.getElementById('receiveField').value = receive.toFixed(2);
+
+      // Set hidden fields for charge and receive
+      document.getElementById('charge').value = charge.toFixed(2);
+      document.getElementById('receive').value = receive.toFixed(2);
+    }
+
+    // Validate the current section and proceed to the next
+    function validateAndProceed(nextSection) {
+      const currentSection = document.querySelector('.form-section:not(.hidden)');
+      const inputs = currentSection.querySelectorAll('input, select');
+      let isValid = true;
+
+      // Check if all inputs are valid
+      inputs.forEach(input => {
+        if (!input.checkValidity()) {
+          isValid = false;
+          input.reportValidity();
+        }
+      });
+
+      if (isValid) {
+        goToSection(nextSection); // Move to the next section
+      }
+    }
+
+    // Listen for input change to update the calculation
+    document.getElementById('inputNumber').addEventListener('input', updateCalculation);
+
+    // Listen for cash-out options change to show account number input
+    document.getElementById('cashOutOptions').addEventListener('change', function () {
+      const accountNumberField = document.getElementById('accountNumberField');
+      const accountNumberInput = document.getElementById('accountNumber');
+
+      if (this.value) {
+        accountNumberField.classList.remove('hidden');
+        accountNumberInput.setAttribute('required', 'true');
+      } else {
+        accountNumberField.classList.add('hidden');
+        accountNumberInput.removeAttribute('required');
+      }
+    });
+
+    // Handle form submission and show the thank you message immediately
+    document.getElementById('converterForm').addEventListener('submit', function (event) {
+      event.preventDefault(); // Prevent form from actually submitting
+
+      // Show the thank you message instantly
+      document.getElementById('thankYouMessage').classList.remove('hidden');
+      this.classList.add('hidden'); // Hide the form
+
+      // Disable submit button to avoid multiple clicks
+      const submitButton = this.querySelector('button[type="submit"]');
+      submitButton.disabled = true;
+
+      // Prepare form data to send to the server (Google Apps Script)
+      const formData = new FormData(this);
+      const actionUrl = 'https://script.google.com/macros/s/AKfycbwaHNQcOsedGFA9NUdzIrkN9p9q0eFx5cYEOowACA_YGt3loPsA9K3UnkNlXJhSepDdiA/exec';  // Replace with your script URL
+
+      // Send form data via POST request
+      fetch(actionUrl, {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.text())
+      .then(data => {
+        console.log(data); // Logs "Success" if saved successfully
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+    });
+  </script>
+</body>
+</html>
